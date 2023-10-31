@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { IUser } from "../app/models/user";
+import { IUser } from "../app/models/User";
 import { User } from "../app/models";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
@@ -15,20 +15,20 @@ const generateTokens = async (user: IUser, role: Role) => {
       so_dien_thoai: user.so_dien_thoai,
       role: role,
     };
-    const secret_key = process?.env?.ACCESS_TOKEN_SECRET || "";
+    const access_token_secret = process?.env?.ACCESS_TOKEN_SECRET || "";
+    const refresh_token_secret = process?.env?.REFRESH_TOKEN_SECRET || "";
     const expiresIn = process?.env?.ACCESS_TOKEN_LIFE || "14m";
 
     // Create access token
-    const accessToken = jwt.sign(payload, secret_key, {
+    const accessToken = jwt.sign(payload, access_token_secret, {
       expiresIn: expiresIn,
     });
 
     // Create refresh token
-    const refreshToken = jwt.sign(payload, secret_key, { expiresIn: "30d" });
+    const refreshToken = jwt.sign(payload, refresh_token_secret, {
+      expiresIn: "30d",
+    });
 
-    const userToken = await User.findById(user._id);
-    
-    if (userToken) await userServices.saveToken(user, refreshToken);
     return Promise.resolve({ accessToken, refreshToken });
   } catch (err) {
     return Promise.reject(err);

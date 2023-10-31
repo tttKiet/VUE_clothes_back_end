@@ -1,4 +1,4 @@
-import { IUser } from "../app/models/user";
+import { IUser } from "../app/models/User";
 import { User } from "../app/models";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";

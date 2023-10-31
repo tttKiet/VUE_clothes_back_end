@@ -7,7 +7,6 @@ export interface IUser {
   password: string;
   dia_chi: string;
   so_dien_thoai: string;
-  token?: string;
 }
 
 const userSchema = new Schema<IUser>(
@@ -16,7 +15,6 @@ const userSchema = new Schema<IUser>(
     password: { type: String },
     dia_chi: { type: String },
     so_dien_thoai: { type: String, unique: true },
-    token: { type: String, default: null },
   },
   { timestamps: true }
 );
