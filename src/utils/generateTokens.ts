@@ -3,15 +3,18 @@ import { IUser } from "../app/models/User";
 import { User } from "../app/models";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
-import { userServices } from "../services";
 dotenv.config();
 
 type Role = "user" | "admin";
-
+export interface TokenPayload {
+  _id: string;
+  so_dien_thoai: string;
+  role: Role;
+}
 const generateTokens = async (user: IUser, role: Role) => {
   try {
-    const payload = {
-      _id: user._id,
+    const payload: TokenPayload = {
+      _id: user?._id || "",
       so_dien_thoai: user.so_dien_thoai,
       role: role,
     };

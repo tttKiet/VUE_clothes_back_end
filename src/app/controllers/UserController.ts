@@ -1,10 +1,10 @@
-import { AsyncRequestHandler } from "../../interface";
+import { RequestHandler } from "express";
 import { userServices } from "../../services";
 import ApiError from "../../utils/api-error";
 import { validateReqBody } from "../../utils/validate-req-body";
 
 class UserController {
-  handleCreateUser: AsyncRequestHandler = async (req, res, next) => {
+  handleCreateUser: RequestHandler = async (req, res, next) => {
     const { ho_ten_KH, password, dia_chi, so_dien_thoai } = req.body;
 
     try {

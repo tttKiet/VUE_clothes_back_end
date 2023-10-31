@@ -4,7 +4,15 @@ import connectDb from "./config/db";
 import dotenv from "dotenv";
 import cors from "cors";
 import route from "./routers";
+import { TokenPayload } from "./utils/generateTokens";
 
+declare global {
+  namespace Express {
+    interface Request {
+      user?: TokenPayload;
+    }
+  }
+}
 // For env File
 dotenv.config();
 

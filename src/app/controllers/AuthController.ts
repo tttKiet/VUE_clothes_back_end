@@ -1,13 +1,13 @@
-import { AsyncRequestHandler } from "../../interface";
 import { userServices, authServices } from "../../services";
 import dotenv from "dotenv";
 dotenv.config();
 import jwt from "jsonwebtoken";
 import ApiError from "../../utils/api-error";
 import { validateReqBody } from "../../utils/validate-req-body";
+import { RequestHandler } from "express";
 
 class AuthController {
-  handleLogin: AsyncRequestHandler = async (req, res, next) => {
+  handleLogin: RequestHandler = async (req, res, next) => {
     const { password, so_dien_thoai } = req.body;
 
     try {
@@ -47,7 +47,7 @@ class AuthController {
     }
   };
 
-  handleRefresh: AsyncRequestHandler = async (req, res, next) => {
+  handleRefresh: RequestHandler = async (req, res, next) => {
     const refreshToken = req.cookies.refreshToken;
 
     if (!refreshToken) {
@@ -63,12 +63,55 @@ class AuthController {
           statusCode: result.statusCode,
           msg: result.msg,
           data: {
-            ...result,
+            accessToken: result.data?.accessToken,
           },
         });
       } else {
         return next(new ApiError(result.statusCode, result.msg));
       }
+    } catch (error) {
+      const err = error as Error;
+      return next(new ApiError(500, err?.message || ""));
+    }
+  };
+
+  handleGetProfileLogin: RequestHandler = async (req, res, next) => {
+    const user = req.user;
+
+    try {
+      if (user) {
+        return res.status(200).json({
+          statusCode: 200,
+          msg: "Lấy thông tin người dùng thành công.",
+          data: user,
+        });
+      } else {
+        return next(new ApiError(404, "Không tim thấy user."));
+      }
+    } catch (error) {
+      const err = error as Error;
+      return next(new ApiError(500, err?.message || ""));
+    }
+  };
+
+  handleLogout: RequestHandler = async (req, res, next) => {
+    const user = req.user;
+
+    try {
+      await authServices.logout({
+        userId: user?._id || "",
+      });
+      res.clearCookie("refreshToken", {
+        sameSite: "none",
+        httpOnly: true,
+        secure: false,
+        path: "/",
+      });
+      return res.status(200).json({
+        statusCode: 200,
+        msg: "Đăng xuất thành công.",
+        data: user,
+      });
     } catch (error) {
       const err = error as Error;
       return next(new ApiError(500, err?.message || ""));

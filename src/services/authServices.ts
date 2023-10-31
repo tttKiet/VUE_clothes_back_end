@@ -2,8 +2,9 @@ import { IUser } from "../app/models/User";
 import { User } from "../app/models";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import generateTokens from "../utils/generateTokens";
+import generateTokens, { TokenPayload } from "../utils/generateTokens";
 import { UserToken } from "../app/models";
+import verifyRefreshToken from "../utils/verify-refresh-token";
 
 interface JwtPayload extends IUser {
   role: "user" | "admin";
@@ -80,6 +81,14 @@ class AuthServices {
       refresh_token_secret
     ) as JwtPayload;
 
+    const result = await verifyRefreshToken(refreshToken);
+    if (result.error) {
+      return {
+        statusCode: 403,
+        msg: result.message || "Làm mới access token 0 thành công.",
+      };
+    }
+
     const { accessToken: newAccessToken } = await generateTokens(
       userData,
       userData.role
@@ -93,29 +102,36 @@ class AuthServices {
       },
     };
   }
+  // async getProfile(user:TokenPayload) {
+  //   const refresh_token_secret = process.env?.REFRESH_TOKEN_SECRET || "";
+  //   const userData = jwt.verify(
+  //     refreshToken,
+  //     refresh_token_secret
+  //   ) as JwtPayload;
 
-  verifyRefreshToken(refreshToken: string) {
-    const privateKey = process?.env?.REFRESH_TOKEN_SECRET || "";
+  //   const result = await verifyRefreshToken(refreshToken);
+  //   if (result.error) {
+  //     return {
+  //       statusCode: 403,
+  //       msg: result.message || "Làm mới access token 0 thành công.",
+  //     };
+  //   }
 
-    return new Promise(async (resolve, reject) => {
-      const user = await User.findOne({ token: refreshToken });
+  //   const { accessToken: newAccessToken } = await generateTokens(
+  //     userData,
+  //     userData.role
+  //   );
 
-      if (!user)
-        return reject({ error: true, message: "Refresh token không đúng." });
-
-      jwt.verify(refreshToken, privateKey, (err, tokenDetails) => {
-        if (err)
-          return reject({
-            error: true,
-            message: "Refresh token không chính xác.",
-          });
-        resolve({
-          tokenDetails,
-          error: false,
-          message: "Valid refresh token",
-        });
-      });
-    });
+  //   return {
+  //     statusCode: 200,
+  //     msg: "Làm mới access token thành công.",
+  //     data: {
+  //       accessToken: newAccessToken,
+  //     },
+  //   };
+  // }
+  async logout({ userId }: { userId: string }) {
+    await UserToken.deleteOne({ userId });
   }
 }
 
