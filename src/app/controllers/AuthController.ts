@@ -5,11 +5,12 @@ import jwt from "jsonwebtoken";
 import ApiError from "../../utils/api-error";
 import { validateReqBody } from "../../utils/validate-req-body";
 import { RequestHandler } from "express";
+import { TokenPayload } from "../../utils/generateTokens";
+import { UserToken } from "../models";
 
 class AuthController {
   handleLogin: RequestHandler = async (req, res, next) => {
     const { password, so_dien_thoai } = req.body;
-
     try {
       const isValid = validateReqBody(password, so_dien_thoai);
       if (!isValid) {
@@ -26,16 +27,18 @@ class AuthController {
       if (result.statusCode === 200) {
         // save cookie
         res.cookie("refreshToken", result.data?.refreshToken, {
-          sameSite: "none",
+          sameSite: "strict",
           httpOnly: true,
           secure: false,
           path: "/",
         });
+        console.log(result.data?.user);
         return res.status(200).json({
           statusCode: result.statusCode,
           msg: result.msg,
           data: {
             accessToken: result.data?.accessToken,
+            ...result.data?.user,
           },
         });
       } else {
@@ -95,14 +98,23 @@ class AuthController {
   };
 
   handleLogout: RequestHandler = async (req, res, next) => {
-    const user = req.user;
+    const refresh_token = req.cookies.refreshToken;
+    if (!refresh_token) {
+      return next(new ApiError(401, "Bạn chưa đăng nhập."));
+    }
+    const refresh_token_secret = process?.env?.REFRESH_TOKEN_SECRET || "";
 
     try {
+      const userData = jwt.verify(
+        refresh_token,
+        refresh_token_secret
+      ) as TokenPayload;
+
       await authServices.logout({
-        userId: user?._id || "",
+        userId: userData?._id || "",
       });
       res.clearCookie("refreshToken", {
-        sameSite: "none",
+        sameSite: "strict",
         httpOnly: true,
         secure: false,
         path: "/",
@@ -110,7 +122,6 @@ class AuthController {
       return res.status(200).json({
         statusCode: 200,
         msg: "Đăng xuất thành công.",
-        data: user,
       });
     } catch (error) {
       const err = error as Error;

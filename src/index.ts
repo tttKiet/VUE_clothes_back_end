@@ -24,6 +24,7 @@ app.use(cookieParser());
 
 // Use bodyParser
 app.use(express.urlencoded());
+app.use(express.json());
 
 // Cors
 app.use(

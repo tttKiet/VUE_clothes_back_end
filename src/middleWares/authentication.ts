@@ -1,9 +1,10 @@
 import ApiError from "../utils/api-error";
-import jwt from "jsonwebtoken";
+import jwt, { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
 import dotenv from "dotenv";
-import { IUser } from "../app/models";
+import { IUser, UserToken } from "../app/models";
 import { TokenPayload } from "../utils/generateTokens";
 import { RequestHandler } from "express";
+import { expiryToISODate } from "../utils/common";
 dotenv.config();
 class AuthMiddleWare {
   authenticate: RequestHandler = async (req, res, next) => {
@@ -20,15 +21,31 @@ class AuthMiddleWare {
         accessToken,
         access_token_secret
       ) as TokenPayload;
+      const userToken = await UserToken.findOne({
+        userId: userData._id,
+      });
+
+      if (!userToken) return next(new ApiError(401, "Bạn chưa đăng nhập"));
+      console.log(expiryToISODate(userData?.exp || 111));
       req.user = {
         so_dien_thoai: userData.so_dien_thoai,
+        dia_chi: userData.dia_chi,
+        ho_ten_KH: userData.ho_ten_KH,
+        iat: userData.iat,
         _id: userData._id,
         role: userData.role,
       };
       next();
     } catch (error) {
-      const err = error as Error;
-      return next(new ApiError(403, err?.message || ""));
+      if (error instanceof TokenExpiredError) {
+        const err = error as TokenExpiredError;
+        return next(new ApiError(403, err?.message || ""));
+      } else if (error instanceof JsonWebTokenError) {
+        const err = error as JsonWebTokenError;
+        return next(new ApiError(401, err?.message || ""));
+      } else {
+        return next(new ApiError(400, "Vui lòng thử lại."));
+      }
     }
   };
 }
