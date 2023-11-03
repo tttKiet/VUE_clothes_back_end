@@ -5,14 +5,31 @@ import dotenv from "dotenv";
 import { IStaff, Staff } from "../app/models/Staff";
 import { Role } from "../utils/generateTokens";
 import { IProduct, Product } from "../app/models/Product";
+import { ProductImage } from "../app/models/ProductImage";
+import { destroyUploadCloundinary } from "../utils/common";
 
 dotenv.config();
 
 class AdminServices {
-  async createOrUpdateProduct(product: IProduct) {
+  async createOrUpdateProduct(product: IProduct, imageUrl: string) {
     if (product?._id) {
       // update
-      // create
+      const productImg = await ProductImage.updateMany(
+        {
+          product_id: product._id,
+        },
+        {
+          url: imageUrl,
+        }
+      );
+
+      if (!productImg) {
+        return {
+          statusCode: 400,
+          msg: "Cập nhật hình ảnh thất bại.",
+        };
+      }
+
       const productDoc = await Product.findOneAndUpdate(
         {
           _id: product._id,
@@ -48,10 +65,23 @@ class AdminServices {
       const doc = await Product.create({
         ...product,
       });
+
       if (doc) {
+        const productImg = await ProductImage.create({
+          product_id: doc._id,
+          url: imageUrl,
+        });
+        if (!productImg) {
+          return {
+            statusCode: 400,
+            msg: "Thêm hình ảnh thất bại.",
+          };
+        }
+        doc.imageUrl = imageUrl;
         return {
           statusCode: 200,
           msg: "Đã thêm hàng hóa.",
+          data: doc,
         };
       } else {
         return {
@@ -60,6 +90,49 @@ class AdminServices {
         };
       }
     }
+  }
+  async deleteProduct(_id: string) {
+    const [pro, proImg] = await Promise.all([
+      Product.findOneAndRemove({
+        _id,
+      }),
+      ProductImage.findOneAndRemove({
+        product_id: _id,
+      }),
+    ]);
+
+    console.log({ pro, proImg });
+    if (proImg) await destroyUploadCloundinary(proImg.url);
+    if (pro || proImg) {
+      return {
+        statusCode: 200,
+        msg: "Đã xóa thành công.",
+      };
+    } else {
+      return {
+        statusCode: 400,
+        msg: "Xóa thất bại, vui lòng thử lại.",
+      };
+    }
+  }
+
+  async getProduct() {
+    const productDoc = await Product.find().lean();
+    const promiseAll = productDoc.map(async (product) => {
+      const newP: any = product;
+      const imgDoc = await ProductImage.findOne({
+        product_id: product._id,
+      }).lean();
+      newP.ProductImage = imgDoc;
+      return newP;
+    });
+
+    const data = await Promise.all(promiseAll);
+    return {
+      statusCode: 200,
+      msg: "Lấy thành công.",
+      data: data,
+    };
   }
 }
 

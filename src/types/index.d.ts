@@ -6,6 +6,8 @@ interface ResponseMsg {
 declare global {
   declare namespace Express {
     import { TokenPayload } from "./utils/generateTokens";
+    import { UploadApiResponse } from "cloudinary";
+
     export interface Request {
       user: TokenPayload;
     }

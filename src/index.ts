@@ -4,6 +4,7 @@ import connectDb from "./config/db";
 import dotenv from "dotenv";
 import cors from "cors";
 import route from "./routers";
+import bodyParser from "body-parser";
 import { TokenPayload } from "./utils/generateTokens";
 
 declare global {
@@ -19,11 +20,14 @@ dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 8000;
 
+// Connect to db
+connectDb();
+
 // Use cookie
 app.use(cookieParser());
 
 // Use bodyParser
-app.use(express.urlencoded());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 // Cors
@@ -37,9 +41,6 @@ app.use(
 
 // Use route
 route(app);
-
-// Connect to db
-connectDb();
 
 app.get("/", (req: Request, res: Response) => {
   res.send("Welcome to Express & TypeScript Server");
