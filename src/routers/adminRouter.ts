@@ -8,6 +8,7 @@ import {
 const router = express.Router();
 
 // /api/v1
+router.get("/product/:_id", adminController.handleGetProductById);
 router
   .route("/product")
   .post(

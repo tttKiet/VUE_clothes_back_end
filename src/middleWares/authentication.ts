@@ -11,7 +11,9 @@ class AuthMiddleWare {
     const authToken = req.headers.authorization;
 
     if (!(authToken && authToken.startsWith("Bearer "))) {
-      return next(new ApiError(401, "Không tìm thấy access token."));
+      return next(
+        new ApiError(401, "Bạn chưa đăng nhập. [Không tìm thấy access token.]")
+      );
     }
     const accessToken = authToken.split(" ")[1];
     const access_token_secret = process?.env?.ACCESS_TOKEN_SECRET || "";

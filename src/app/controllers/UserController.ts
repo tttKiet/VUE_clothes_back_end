@@ -39,6 +39,98 @@ class UserController {
       return next(new ApiError(500, err?.message || ""));
     }
   };
+
+  handleAddCart: RequestHandler = async (req, res, next) => {
+    const { product_id, so_luong } = req.body;
+    if (!product_id || !so_luong) {
+      return next(new ApiError(400, "Thiếu tham số truyền vào."));
+    } else if (so_luong <= 0) {
+      return next(new ApiError(400, "Số lượng phải lớn hơn 0."));
+    }
+
+    const user_id = req.user?._id!;
+    try {
+      const result = await userServices.addCart({
+        product_id,
+        so_luong,
+        user_id,
+      });
+      if (result.statusCode === 200) {
+        return res.status(200).json(result);
+      } else {
+        return next(new ApiError(result.statusCode, result.msg));
+      }
+    } catch (error) {
+      const err = error as Error;
+      return next(new ApiError(500, err?.message || ""));
+    }
+  };
+
+  handleEditCart: RequestHandler = async (req, res, next) => {
+    const { product_id, so_luong } = req.body;
+    if (!product_id && !so_luong) {
+      return next(new ApiError(400, "Thiếu tham số truyền vào."));
+    } else if (so_luong <= 0) {
+      return next(new ApiError(400, "Số lượng phải lớn hơn 0."));
+    }
+
+    const user_id = req.user?._id!;
+    try {
+      const result = await userServices.updateCart({
+        product_id,
+        so_luong,
+        user_id,
+      });
+      if (result.statusCode === 200) {
+        return res.status(200).json(result);
+      } else {
+        return next(new ApiError(result.statusCode, result.msg));
+      }
+    } catch (error) {
+      const err = error as Error;
+      return next(new ApiError(500, err?.message || ""));
+    }
+  };
+
+  handleDeleteProductCart: RequestHandler = async (req, res, next) => {
+    const { product_id } = req.body;
+    if (!product_id) {
+      return next(new ApiError(400, "Thiếu tham số truyền vào."));
+    }
+
+    const user_id = req.user?._id!;
+    try {
+      const result = await userServices.deleteCart({
+        product_id,
+        user_id,
+      });
+      if (result.statusCode === 200) {
+        return res.status(200).json(result);
+      } else {
+        return next(new ApiError(result.statusCode, result.msg));
+      }
+    } catch (error) {
+      const err = error as Error;
+      return next(new ApiError(500, err?.message || ""));
+    }
+  };
+
+  handleGetCart: RequestHandler = async (req, res, next) => {
+    const user_id = req.user?._id!;
+    try {
+      const result = await userServices.getCart({
+        user_id,
+      });
+      if (result.statusCode === 200) {
+        return res.status(200).json(result);
+      } else {
+        return next(new ApiError(result.statusCode, result.msg));
+      }
+    } catch (error) {
+      const err = error as Error;
+      return next(new ApiError(500, err?.message || ""));
+    }
+  };
 }
 
 const userController = new UserController();

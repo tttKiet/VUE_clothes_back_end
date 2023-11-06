@@ -4,6 +4,8 @@ import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import { IStaff, Staff } from "../app/models/Staff";
 import { Role } from "../utils/generateTokens";
+import { Cart } from "../app/models/Cart";
+import { ProductImage } from "../app/models/ProductImage";
 
 dotenv.config();
 
@@ -17,7 +19,6 @@ class UserServices {
         token,
       }
     );
-    console.log("docs--------------------", docs);
   }
 
   async createUser(user: IUser, chuc_vu: string) {
@@ -64,6 +65,147 @@ class UserServices {
         statusCode: 200,
         msg: "Tạo người dùng thành công.",
         data: userDoc,
+      };
+    }
+  }
+
+  async addCart({
+    product_id,
+    so_luong,
+    user_id,
+  }: {
+    product_id: string;
+    so_luong: number;
+    user_id: string;
+  }) {
+    // filter have product
+    const productCart = await Cart.findOneAndUpdate(
+      {
+        product_id: product_id,
+        user_id: user_id,
+      },
+      {
+        $inc: {
+          so_luong: so_luong,
+        },
+      }
+    );
+
+    if (productCart) {
+      return {
+        statusCode: 200,
+        msg: "Thêm thành công.",
+      };
+    } else {
+      const productCart = await Cart.create({
+        product_id: product_id,
+        user_id: user_id,
+        so_luong: so_luong,
+      });
+
+      if (productCart) {
+        return {
+          statusCode: 200,
+          msg: "Thêm thành công.",
+          data: productCart,
+        };
+      } else {
+        return {
+          statusCode: 400,
+          msg: "Thêm thất bại.",
+        };
+      }
+    }
+  }
+
+  async updateCart({
+    product_id,
+    so_luong,
+    user_id,
+  }: {
+    product_id: string;
+    so_luong: number;
+    user_id: string;
+  }) {
+    // filter have product
+    const productCart = await Cart.findOneAndUpdate(
+      {
+        product_id: product_id,
+        user_id: user_id,
+      },
+      {
+        so_luong: so_luong,
+      }
+    );
+
+    if (productCart) {
+      return {
+        statusCode: 200,
+        msg: "Cập nhật thành công.",
+        data: productCart,
+      };
+    } else {
+      return {
+        statusCode: 400,
+        msg: "Cập nhật thất bại.",
+      };
+    }
+  }
+
+  async deleteCart({
+    product_id,
+    user_id,
+  }: {
+    product_id: string;
+    user_id: string;
+  }) {
+    // filter have product
+    const productCart = await Cart.deleteOne({
+      product_id: product_id,
+      user_id: user_id,
+    });
+
+    if (productCart) {
+      return {
+        statusCode: 200,
+        msg: "Xóa thành công.",
+        data: productCart,
+      };
+    } else {
+      return {
+        statusCode: 400,
+        msg: "Xóa thất bại.",
+      };
+    }
+  }
+
+  async getCart({ user_id }: { user_id: string }) {
+    const productCart = await Cart.find({
+      user_id: user_id,
+    })
+      .populate("product_id")
+      .lean();
+
+    const promiseAll = productCart.map(async (productCartItem) => {
+      const newP: any = productCartItem;
+      const imgDoc = await ProductImage.findOne({
+        product_id: productCartItem.product_id._id,
+      }).lean();
+      newP.product_id.ProductImage = imgDoc;
+      return newP;
+    });
+    const data = await Promise.all(promiseAll);
+
+    if (productCart) {
+      return {
+        statusCode: 200,
+        msg: "Lấy thành công.",
+        data: data,
+      };
+    } else {
+      return {
+        statusCode: 400,
+        msg: "Lấy thất bại.",
       };
     }
   }

@@ -11,23 +11,25 @@ import { destroyUploadCloundinary } from "../utils/common";
 dotenv.config();
 
 class AdminServices {
-  async createOrUpdateProduct(product: IProduct, imageUrl: string) {
+  async createOrUpdateProduct(product: IProduct, imageUrl: string | undefined) {
     if (product?._id) {
       // update
-      const productImg = await ProductImage.updateMany(
-        {
-          product_id: product._id,
-        },
-        {
-          url: imageUrl,
-        }
-      );
+      if (imageUrl) {
+        const productImg = await ProductImage.updateMany(
+          {
+            product_id: product._id,
+          },
+          {
+            url: imageUrl,
+          }
+        );
 
-      if (!productImg) {
-        return {
-          statusCode: 400,
-          msg: "Cập nhật hình ảnh thất bại.",
-        };
+        if (!productImg) {
+          return {
+            statusCode: 400,
+            msg: "Cập nhật hình ảnh thất bại.",
+          };
+        }
       }
 
       const productDoc = await Product.findOneAndUpdate(
@@ -101,7 +103,6 @@ class AdminServices {
       }),
     ]);
 
-    console.log({ pro, proImg });
     if (proImg) await destroyUploadCloundinary(proImg.url);
     if (pro || proImg) {
       return {
@@ -132,6 +133,28 @@ class AdminServices {
       statusCode: 200,
       msg: "Lấy thành công.",
       data: data,
+    };
+  }
+
+  async getProductById(_id: string) {
+    const productDoc = await Product.findById<IProduct>(_id).lean();
+    if (productDoc) {
+      const newP: any = productDoc;
+      const imgDoc = await ProductImage.findOne({
+        product_id: productDoc._id,
+      }).lean();
+      newP.ProductImage = imgDoc;
+      return {
+        statusCode: 200,
+        msg: "Lấy thành công.",
+        data: newP,
+      };
+    }
+
+    return {
+      statusCode: 400,
+      msg: "Không tim thấy.",
+      data: null,
     };
   }
 }
