@@ -2,6 +2,7 @@ import { RequestHandler } from "express";
 import { userServices } from "../../services";
 import ApiError from "../../utils/api-error";
 import { validateReqBody } from "../../utils/validate-req-body";
+import { orderServices } from "../../services/orderServices";
 
 class UserController {
   handleCreateUser: RequestHandler = async (req, res, next) => {
@@ -41,8 +42,8 @@ class UserController {
   };
 
   handleAddCart: RequestHandler = async (req, res, next) => {
-    const { product_id, so_luong } = req.body;
-    if (!product_id || !so_luong) {
+    const { product_id, so_luong, size } = req.body;
+    if (!product_id || !so_luong || !size) {
       return next(new ApiError(400, "Thiếu tham số truyền vào."));
     } else if (so_luong <= 0) {
       return next(new ApiError(400, "Số lượng phải lớn hơn 0."));
@@ -54,6 +55,7 @@ class UserController {
         product_id,
         so_luong,
         user_id,
+        size,
       });
       if (result.statusCode === 200) {
         return res.status(200).json(result);
@@ -67,8 +69,8 @@ class UserController {
   };
 
   handleEditCart: RequestHandler = async (req, res, next) => {
-    const { product_id, so_luong } = req.body;
-    if (!product_id && !so_luong) {
+    const { product_id, so_luong, size, size_old } = req.body;
+    if (!product_id && !so_luong && !size) {
       return next(new ApiError(400, "Thiếu tham số truyền vào."));
     } else if (so_luong <= 0) {
       return next(new ApiError(400, "Số lượng phải lớn hơn 0."));
@@ -80,6 +82,8 @@ class UserController {
         product_id,
         so_luong,
         user_id,
+        size_old,
+        size,
       });
       if (result.statusCode === 200) {
         return res.status(200).json(result);
@@ -116,6 +120,57 @@ class UserController {
   };
 
   handleGetCart: RequestHandler = async (req, res, next) => {
+    const user_id = req.user?._id!;
+    try {
+      const result = await userServices.getCart({
+        user_id,
+      });
+      if (result.statusCode === 200) {
+        return res.status(200).json(result);
+      } else {
+        return next(new ApiError(result.statusCode, result.msg));
+      }
+    } catch (error) {
+      const err = error as Error;
+      return next(new ApiError(500, err?.message || ""));
+    }
+  };
+
+  // Order
+  handleGetOrder: RequestHandler = async (req, res, next) => {
+    const user_id = req.user?._id!;
+    try {
+      const result = await orderServices.getOrder({
+        user_id,
+      });
+      if (result.statusCode === 200) {
+        return res.status(200).json(result);
+      } else {
+        return next(new ApiError(result.statusCode, result.msg));
+      }
+    } catch (error) {
+      const err = error as Error;
+      return next(new ApiError(500, err?.message || ""));
+    }
+  };
+  handleOrderProduct: RequestHandler = async (req, res, next) => {
+    const user_id = req.user?._id!;
+    try {
+      const result = await userServices.getCart({
+        user_id,
+      });
+      if (result.statusCode === 200) {
+        return res.status(200).json(result);
+      } else {
+        return next(new ApiError(result.statusCode, result.msg));
+      }
+    } catch (error) {
+      const err = error as Error;
+      return next(new ApiError(500, err?.message || ""));
+    }
+  };
+
+  handleOrderProductCart: RequestHandler = async (req, res, next) => {
     const user_id = req.user?._id!;
     try {
       const result = await userServices.getCart({

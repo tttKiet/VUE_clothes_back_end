@@ -4,7 +4,7 @@ import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import { IStaff, Staff } from "../app/models/Staff";
 import { Role } from "../utils/generateTokens";
-import { Cart } from "../app/models/Cart";
+import { Cart, Sizes } from "../app/models/Cart";
 import { ProductImage } from "../app/models/ProductImage";
 
 dotenv.config();
@@ -73,16 +73,19 @@ class UserServices {
     product_id,
     so_luong,
     user_id,
+    size,
   }: {
     product_id: string;
     so_luong: number;
     user_id: string;
+    size: Sizes;
   }) {
     // filter have product
     const productCart = await Cart.findOneAndUpdate(
       {
         product_id: product_id,
         user_id: user_id,
+        size: size,
       },
       {
         $inc: {
@@ -101,6 +104,7 @@ class UserServices {
         product_id: product_id,
         user_id: user_id,
         so_luong: so_luong,
+        size,
       });
 
       if (productCart) {
@@ -122,21 +126,41 @@ class UserServices {
     product_id,
     so_luong,
     user_id,
+    size,
+    size_old,
   }: {
     product_id: string;
     so_luong: number;
     user_id: string;
+    size: Sizes;
+    size_old: Sizes;
   }) {
     // filter have product
-    const productCart = await Cart.findOneAndUpdate(
-      {
-        product_id: product_id,
-        user_id: user_id,
-      },
-      {
-        so_luong: so_luong,
-      }
-    );
+
+    let productCart;
+    if (size_old) {
+      productCart = await Cart.findOneAndUpdate(
+        {
+          product_id: product_id,
+          user_id: user_id,
+          size: size_old,
+        },
+        {
+          size: size,
+        }
+      );
+    } else {
+      productCart = await Cart.findOneAndUpdate(
+        {
+          product_id: product_id,
+          user_id: user_id,
+          size,
+        },
+        {
+          so_luong: so_luong,
+        }
+      );
+    }
 
     if (productCart) {
       return {
