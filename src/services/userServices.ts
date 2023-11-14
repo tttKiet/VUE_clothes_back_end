@@ -32,7 +32,7 @@ class UserServices {
 
     if (userExists || staffExists) {
       return {
-        statusCode: 401,
+        statusCode: 406,
         msg: "Người dùng đã tồn tại.",
       };
     }
@@ -209,11 +209,14 @@ class UserServices {
     })
       .populate("product_id")
       .lean();
-
+    console.log(
+      "--------------------------------------------------------productCart",
+      productCart
+    );
     const promiseAll = productCart.map(async (productCartItem) => {
       const newP: any = productCartItem;
       const imgDoc = await ProductImage.findOne({
-        product_id: productCartItem.product_id._id,
+        product_id: productCartItem?.product_id?._id,
       }).lean();
       newP.product_id.ProductImage = imgDoc;
       return newP;

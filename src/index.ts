@@ -1,4 +1,4 @@
-import express, { Express, Request, Response } from "express";
+import express, { Express, NextFunction, Request, Response } from "express";
 import cookieParser from "cookie-parser";
 import connectDb from "./config/db";
 import dotenv from "dotenv";
@@ -6,6 +6,7 @@ import cors from "cors";
 import route from "./routers";
 import bodyParser from "body-parser";
 import { TokenPayload } from "./utils/generateTokens";
+import ApiError from "./utils/api-error";
 
 declare global {
   namespace Express {
@@ -38,9 +39,16 @@ app.use(
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   })
 );
+// Middleware handler public error
 
 // Use route
 route(app);
+
+app.use((error: ApiError, req: Request, res: Response, next: NextFunction) => {
+  return res.status(error.statusCode || 500).json({
+    message: error.message || "Internal Server Error",
+  });
+});
 
 app.get("/", (req: Request, res: Response) => {
   res.send("Welcome to Express & TypeScript Server");

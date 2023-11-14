@@ -4,11 +4,10 @@ import ApiError from "../../utils/api-error";
 import { validateReqBody } from "../../utils/validate-req-body";
 import { adminServices } from "../../services/adminServices";
 import { destroyUploadCloundinary } from "../../utils/common";
+import { orderServices } from "../../services/orderServices";
 
 class AdminController {
   handleCreateOrUpdateProduct: RequestHandler = async (req, res, next) => {
-    console.log("req", req.file);
-
     const { _id, ten_HH, mo_ta_HH, gia, so_luong_hang, ghi_chu, image } =
       req.body;
     // Create
@@ -19,13 +18,7 @@ class AdminController {
     }
     try {
       const url = req.file?.path || image;
-      const isValid = validateReqBody(
-        ten_HH,
-        mo_ta_HH,
-        gia,
-        so_luong_hang,
-        ghi_chu
-      );
+      const isValid = validateReqBody(ten_HH, mo_ta_HH, gia, so_luong_hang);
       if (!isValid) {
         // delete file
         destroyUploadCloundinary(req.file!.path);
@@ -93,6 +86,44 @@ class AdminController {
       }
 
       const result = await adminServices.deleteProduct(_id);
+      if (result.statusCode === 200) {
+        return res.status(200).json(result);
+      } else {
+        return next(new ApiError(result.statusCode, result.msg));
+      }
+    } catch (error) {
+      const err = error as Error;
+      console.log(error);
+      return next(new ApiError(500, err?.message || ""));
+    }
+  };
+
+  handleGetOrder: RequestHandler = async (req, res, next) => {
+    const { trang_thai_DH } = req.query;
+    try {
+      const result = await orderServices.getOrder({ trang_thai_DH });
+      if (result.statusCode === 200) {
+        return res.status(200).json(result);
+      } else {
+        return next(new ApiError(result.statusCode, result.msg));
+      }
+    } catch (error) {
+      const err = error as Error;
+      console.log(error);
+      return next(new ApiError(500, err?.message || ""));
+    }
+  };
+
+  handleChangeStatusOrder: RequestHandler = async (req, res, next) => {
+    const { order_id, status } = req.body;
+    if (!order_id || !status) {
+      return next(new ApiError(400, "Thiếu tham số truyền vào."));
+    }
+    try {
+      const result = await orderServices.changeStatusOrder({
+        order_id,
+        status,
+      });
       if (result.statusCode === 200) {
         return res.status(200).json(result);
       } else {

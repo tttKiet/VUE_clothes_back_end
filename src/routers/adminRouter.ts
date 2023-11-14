@@ -5,6 +5,7 @@ import {
   upload,
   uploadToCloudinary,
 } from "../middleWares/cloundinary";
+import { authMiddleWare } from "../middleWares";
 const router = express.Router();
 
 // /api/v1
@@ -18,5 +19,19 @@ router
   )
   .get(adminController.handleGetproduct)
   .delete(adminController.handleDeleteProduct);
+
+// order
+router
+  .route("/order")
+  .get(
+    authMiddleWare.authenticate,
+    authMiddleWare.verififyAdmin,
+    adminController.handleGetOrder
+  )
+  .patch(
+    authMiddleWare.authenticate,
+    authMiddleWare.verififyAdmin,
+    adminController.handleChangeStatusOrder
+  );
 
 export default router;

@@ -50,6 +50,15 @@ class AuthMiddleWare {
       }
     }
   };
+
+  verififyAdmin: RequestHandler = async (req, res, next) => {
+    const user = req.user;
+    if (user?.role !== "admin") {
+      return next(new ApiError(403, "Bạn không có quyền truy cập."));
+    }
+
+    next();
+  };
 }
 
 const authMiddleWare = new AuthMiddleWare();

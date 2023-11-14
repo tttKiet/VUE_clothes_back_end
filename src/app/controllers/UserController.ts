@@ -153,28 +153,22 @@ class UserController {
       return next(new ApiError(500, err?.message || ""));
     }
   };
-  handleOrderProduct: RequestHandler = async (req, res, next) => {
-    const user_id = req.user?._id!;
-    try {
-      const result = await userServices.getCart({
-        user_id,
-      });
-      if (result.statusCode === 200) {
-        return res.status(200).json(result);
-      } else {
-        return next(new ApiError(result.statusCode, result.msg));
-      }
-    } catch (error) {
-      const err = error as Error;
-      return next(new ApiError(500, err?.message || ""));
-    }
-  };
 
   handleOrderProductCart: RequestHandler = async (req, res, next) => {
     const user_id = req.user?._id!;
+    let { cart_product_ids, so_dien_thoai_dat_hang, dia_chi_nhan } = req.body;
+    const isValid = validateReqBody(so_dien_thoai_dat_hang, dia_chi_nhan);
+    if (!isValid) {
+      return next(new ApiError(400, "Thiếu tham số truyền vào."));
+    }
+    if (!Array.isArray(cart_product_ids)) cart_product_ids = [cart_product_ids];
+
     try {
-      const result = await userServices.getCart({
+      const result = await orderServices.orderProductInCart({
+        cart_product_ids,
         user_id,
+        so_dien_thoai_dat_hang,
+        dia_chi_nhan,
       });
       if (result.statusCode === 200) {
         return res.status(200).json(result);
