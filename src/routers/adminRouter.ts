@@ -6,6 +6,7 @@ import {
   uploadToCloudinary,
 } from "../middleWares/cloundinary";
 import { authMiddleWare } from "../middleWares";
+import { userController } from "../app/controllers";
 const router = express.Router();
 
 // /api/v1
@@ -21,6 +22,7 @@ router
   .delete(adminController.handleDeleteProduct);
 
 // order
+
 router
   .route("/order")
   .get(
@@ -33,5 +35,13 @@ router
     authMiddleWare.verififyAdmin,
     adminController.handleChangeStatusOrder
   );
+
+// chart
+router.get(
+  "/chart/revennue",
+  // authMiddleWare.authenticate,
+  // authMiddleWare.verififyAdmin,
+  adminController.handleGetChartRevenue
+);
 
 export default router;

@@ -7,6 +7,7 @@ import { Role } from "../utils/generateTokens";
 import { IProduct, Product } from "../app/models/Product";
 import { ProductImage } from "../app/models/ProductImage";
 import { destroyUploadCloundinary } from "../utils/common";
+import { orderServices } from "./orderServices";
 
 dotenv.config();
 
@@ -118,13 +119,21 @@ class AdminServices {
   }
 
   async getProduct() {
-    const productDoc = await Product.find().lean();
+    const productDoc = await Product.find().sort({ createdAt: "desc" }).lean();
+
     const promiseAll = productDoc.map(async (product) => {
       const newP: any = product;
       const imgDoc = await ProductImage.findOne({
         product_id: product._id,
       }).lean();
+      const availableOrder = await orderServices.checkAvailableOrder(
+        product._id as string,
+        0
+      );
+
+      console.log("availableOrder-- ", availableOrder);
       newP.ProductImage = imgDoc;
+      newP.availableOrder = availableOrder.quantityAvailable;
       return newP;
     });
 

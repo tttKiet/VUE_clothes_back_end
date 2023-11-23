@@ -180,6 +180,73 @@ class UserController {
       return next(new ApiError(500, err?.message || ""));
     }
   };
+
+  handleOrderOneItem: RequestHandler = async (req, res, next) => {
+    const user_id = req.user?._id!;
+    let { product_id, size, so_luong, so_dien_thoai_dat_hang, dia_chi_nhan } =
+      req.body;
+    const isValid = validateReqBody(
+      product_id,
+      size,
+      so_luong,
+      so_dien_thoai_dat_hang,
+      dia_chi_nhan
+    );
+    if (!isValid) {
+      return next(new ApiError(400, "Thiếu tham số truyền vào."));
+    }
+
+    try {
+      const result = await orderServices.orderOnlyProduct({
+        product_id,
+        size,
+        so_luong,
+        user_id,
+        so_dien_thoai_dat_hang,
+        dia_chi_nhan,
+      });
+      if (result.statusCode === 200) {
+        return res.status(200).json(result);
+      } else {
+        return next(new ApiError(result.statusCode, result.msg));
+      }
+    } catch (error) {
+      const err = error as Error;
+      return next(new ApiError(500, err?.message || ""));
+    }
+  };
+
+  handleGetOrderDetail: RequestHandler = async (req, res, next) => {
+    const { _id } = req.params;
+    try {
+      const result = await orderServices.getOrderDetail({ _id });
+      if (result.statusCode === 200) {
+        return res.status(200).json(result);
+      } else {
+        return next(new ApiError(result.statusCode, result.msg));
+      }
+    } catch (error) {
+      const err = error as Error;
+      console.log(error);
+      return next(new ApiError(500, err?.message || ""));
+    }
+  };
+
+  handleGetCancelOrder: RequestHandler = async (req, res, next) => {
+    const { _id } = req.params;
+    try {
+      const result = await orderServices.getCancelOrder({ _id });
+      if (result.statusCode === 200) {
+        return res.status(200).json(result);
+      } else {
+        return next(new ApiError(result.statusCode, result.msg));
+      }
+    } catch (error) {
+      const err = error as Error;
+      console.log(error);
+      return next(new ApiError(500, err?.message || ""));
+    }
+  };
 }
 
 const userController = new UserController();

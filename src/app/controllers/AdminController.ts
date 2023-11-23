@@ -135,6 +135,23 @@ class AdminController {
       return next(new ApiError(500, err?.message || ""));
     }
   };
+
+  handleGetChartRevenue: RequestHandler = async (req, res, next) => {
+    const { key, value } = req.query;
+
+    try {
+      const result = await orderServices.getChartRevenue({ key, value });
+      if (result.statusCode === 200) {
+        return res.status(200).json(result);
+      } else {
+        return next(new ApiError(result.statusCode, result.msg));
+      }
+    } catch (error) {
+      const err = error as Error;
+      console.log(error);
+      return next(new ApiError(500, err?.message || ""));
+    }
+  };
 }
 
 const adminController = new AdminController();

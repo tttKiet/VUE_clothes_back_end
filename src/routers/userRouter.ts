@@ -18,6 +18,15 @@ router
   .get(authMiddleWare.authenticate, userController.handleGetCart);
 
 // order
+router.post(
+  "/order/one-item",
+  authMiddleWare.authenticate,
+  userController.handleOrderOneItem
+);
+router
+  .route("/order/:_id")
+  .get(userController.handleGetOrderDetail)
+  .patch(userController.handleGetCancelOrder);
 router
   .route("/order")
   .get(authMiddleWare.authenticate, userController.handleGetOrder)

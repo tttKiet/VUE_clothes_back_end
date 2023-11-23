@@ -2,11 +2,12 @@ import mongoose, { Mongoose, StringSchemaDefinition } from "mongoose";
 const { Schema, models } = mongoose;
 
 export enum StatusEnum {
-  NEW = "Chưa xác nhận",
+  NEW = "Chờ xác nhận",
   CONFIRMED = "Đã xác nhận",
   PICKED_UP = "Đã lấy hàng",
   DELIVERING = "Đang giao hàng",
   DELIVERED = "Đã giao",
+  CANCEL = "Đã hủy",
 }
 
 type StatusEnumType = keyof typeof StatusEnum;
@@ -17,6 +18,7 @@ export const StatusArray = [
   "PICKED_UP",
   "DELIVERING",
   "DELIVERED",
+  "CANCEL",
 ];
 
 export interface IOrder {

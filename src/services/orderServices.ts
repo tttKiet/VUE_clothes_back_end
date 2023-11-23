@@ -7,7 +7,7 @@ import { Role } from "../utils/generateTokens";
 import { Cart, Sizes } from "../app/models/Cart";
 import { ProductImage } from "../app/models/ProductImage";
 import { IOrder, Order, StatusArray, StatusEnum } from "../app/models/Order";
-import { OrderDetails } from "../app/models/OrderDetails";
+import { IOrderDetails, OrderDetails } from "../app/models/OrderDetails";
 import { IProduct, Product } from "../app/models/Product";
 
 dotenv.config();
@@ -79,7 +79,17 @@ class OrderServices {
     })
       .populate("product_id")
       .lean();
-    return orderDetailsDoc;
+
+    const promiseAll = orderDetailsDoc.map(async (OrderDetails) => {
+      const newP: any = OrderDetails;
+      const imgDoc = await ProductImage.findOne({
+        product_id: OrderDetails.product_id._id,
+      }).lean();
+      newP.product_id.ProductImage = imgDoc;
+      return newP;
+    });
+    const data = await Promise.all(promiseAll);
+    return data;
   }
 
   async checkAvailableOrder(
@@ -93,11 +103,35 @@ class OrderServices {
       const productDoc: IProduct | null = await Product.findOne({
         _id: product_id,
       }).lean();
+
       if (productDoc) {
         const quantityMax = productDoc.so_luong_hang || 0;
-        const ordered = await OrderDetails.count({
+
+        // Order total quantity
+        const orderTotalDoc = await OrderDetails.find({
           product_id: product_id,
+        })
+          .populate("order_id")
+          .lean();
+
+        const orderTotal = orderTotalDoc.reduce(
+          (init, value) => init + value.so_luong,
+          0
+        );
+
+        // Order total quantity cancel
+        const orderCancelDocPromise = orderTotalDoc.filter((order) => {
+          return order.order_id.trang_thai_DH == "CANCEL";
         });
+
+        const orderCancelDoc = await Promise.all(orderCancelDocPromise);
+
+        const orderCancelTotal = orderCancelDoc.reduce(
+          (init, value) => init + value.so_luong,
+          0
+        );
+
+        const ordered = orderTotal - orderCancelTotal;
 
         if (ordered + quantity > quantityMax)
           return {
@@ -241,6 +275,54 @@ class OrderServices {
         msg: "Trạng thái không đúng! ",
       };
     }
+
+    // Check have slot
+    const oldDoc = await Order.findOne({
+      _id: order_id,
+      trang_thai_DH: "CANCEL",
+    });
+
+    if (oldDoc) {
+      const productDetailDoc = await OrderDetails.find({
+        order_id: oldDoc._id,
+      })
+        .populate("product_id")
+        .lean();
+
+      const promiseAll: Promise<any>[] = productDetailDoc.map(async (d) => {
+        const avail = await this.checkAvailableOrder(
+          d.product_id._id,
+          d.so_luong
+        );
+        return {
+          orderDetails: d,
+          available: avail,
+        };
+      });
+      const docs = await Promise.all(promiseAll);
+
+      const productNotOrder = docs.filter(
+        (c) => c.available.isAvailable == false
+      );
+
+      const msgText = docs.reduce((acc, item) => {
+        return (
+          acc +
+          item.orderDetails.product_id.ten_HH +
+          ": " +
+          item.available.quantityAvailable +
+          "; "
+        );
+      }, "");
+      if (productNotOrder.length > 0) {
+        return {
+          statusCode: 400,
+          msg: `Không đủ số lượng cung cấp.\nSố lượng có thể đặt:\n${msgText}`,
+        };
+      }
+    }
+
+    // update status
     const updatedOrder = await Order.updateOne(
       {
         _id: order_id,
@@ -250,7 +332,6 @@ class OrderServices {
         trang_thai_DH: status,
       }
     );
-    console.log("--updatedOrder", updatedOrder);
     if (updatedOrder.modifiedCount > 0) {
       return {
         statusCode: 200,
@@ -262,6 +343,172 @@ class OrderServices {
         msg: "Dữ liệu không thay đổi! ",
       };
     }
+  }
+
+  async getOrderDetail({ _id }: { _id: string }) {
+    const orderDoc: IOrder | null = await Order.findById(_id)
+      .populate("user_id")
+      .lean();
+    if (!orderDoc) {
+      return {
+        statusCode: 400,
+        msg: "Không tìm thấy order này.",
+      };
+    }
+    const orderDetails = await this.getOrderDetails(orderDoc._id!);
+
+    return {
+      statusCode: 200,
+      msg: "Lấy chi tiết order thành công.",
+      data: {
+        order: orderDoc,
+        orderDetails,
+      },
+    };
+  }
+
+  async getCancelOrder({ _id }: { _id: string }) {
+    const orderDoc: IOrder | null = await Order.findById(_id)
+      .populate("user_id")
+      .lean();
+    if (!orderDoc) {
+      return {
+        statusCode: 400,
+        msg: "Không tìm thấy order này.",
+      };
+    }
+    if (orderDoc.trang_thai_DH !== "NEW") {
+      return {
+        statusCode: 400,
+        msg: "Bạn không thể hủy. Đơn hàng đang di chuyển.",
+      };
+    }
+
+    const orderUpdated = await Order.updateOne(
+      {
+        _id,
+      },
+      {
+        trang_thai_DH: "CANCEL",
+      }
+    );
+    if (orderUpdated.modifiedCount > 0)
+      return {
+        statusCode: 200,
+        msg: "Hủy đơn thành công.",
+      };
+    else {
+      return {
+        statusCode: 200,
+        msg: "Dữ liệu không thay đổi.",
+      };
+    }
+  }
+
+  async orderOnlyProduct({
+    product_id,
+    so_luong,
+    user_id,
+    size,
+    so_dien_thoai_dat_hang,
+    dia_chi_nhan,
+  }: {
+    product_id: string;
+    so_luong: number;
+    user_id: string;
+    size: string;
+    so_dien_thoai_dat_hang: string;
+    dia_chi_nhan: string;
+  }) {
+    const productDoc: IProduct | null = await Product.findById(
+      product_id
+    ).lean();
+    if (!productDoc)
+      return {
+        statusCode: 400,
+        msg: "Không tìm thấy sản phẩm. Hãy f5 lại trang! ",
+      };
+    const orderAvailable = await this.checkAvailableOrder(product_id, so_luong);
+
+    if (!orderAvailable.isAvailable) {
+      const msg =
+        productDoc.ten_HH + ": " + orderAvailable.quantityAvailable + ".";
+      return {
+        statusCode: 400,
+        msg: `Đã có người vừa đặt số lượng không đủ cấp cho bạn.\nSố lượng có thể đặt:\n${msg}`,
+      };
+    }
+
+    const order: IOrder = await Order.create({
+      user_id,
+      ngay_giao_hang: null,
+      trang_thai_DH: "NEW",
+      so_dien_thoai_dat_hang,
+      dia_chi_nhan,
+    });
+
+    const orderDetailsDoc = await OrderDetails.create({
+      order_id: order._id,
+      size: size,
+      so_luong: so_luong,
+      product_id: product_id,
+      gia_Dat_hang: productDoc.gia,
+    });
+
+    return {
+      statusCode: 200,
+      msg: "Đặt thành công.",
+      data: {
+        order,
+        order_details: orderDetailsDoc,
+      },
+    };
+  }
+
+  async getChartRevenue({
+    key,
+    value,
+  }: {
+    key?: string | any;
+    value?: string | any;
+  }) {
+    const op: any = {};
+    if (key == "year") {
+      op.$and = [{ $eq: [{ $year: "$ngay_giao_hang" }, value] }];
+      const order: IOrder[] = await Order.find({
+        trang_thai_DH: "DELIVERED",
+        $expr: { ...op },
+      }).lean();
+      const arrayData = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+      const valueToMonth = order.map(async (o) => {
+        const month = new Date(o.ngay_dat_hang).getMonth();
+        const orderDetails = await OrderDetails.find({
+          order_id: o._id,
+        }).lean();
+
+        const totalPrice = orderDetails.reduce((init, item) => {
+          return init + item.gia_Dat_hang * item.so_luong;
+        }, 0);
+
+        arrayData[month] += totalPrice;
+        return o;
+      });
+
+      const result = await Promise.all(valueToMonth);
+
+      return {
+        statusCode: 200,
+        msg: "ok",
+        data: arrayData,
+        t: result,
+      };
+    }
+
+    return {
+      statusCode: 200,
+      msg: "ok",
+      data: [],
+    };
   }
 }
 
