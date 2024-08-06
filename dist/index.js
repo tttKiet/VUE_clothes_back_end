@@ -1,7 +1,9 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+var __importDefault =
+  (this && this.__importDefault) ||
+  function (mod) {
+    return mod && mod.__esModule ? mod : { default: mod };
+  };
 Object.defineProperty(exports, "__esModule", { value: true });
 var express_1 = __importDefault(require("express"));
 var cookie_parser_1 = __importDefault(require("cookie-parser"));
@@ -21,22 +23,29 @@ app.use((0, cookie_parser_1.default)());
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use(express_1.default.json());
 // Cors
-app.use((0, cors_1.default)({
-    origin: ["http://127.0.0.1:5173", "http://localhost:5173"],
+app.use(
+  (0, cors_1.default)({
+    origin: [
+      "http://127.0.0.1:5173",
+      "http://localhost:5173",
+      "https://clothes-one-piece.vercel.app/",
+      "https://clothes-one-piece.vercel.app",
+    ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-}));
+  })
+);
 // Middleware handler public error
 // Use route
 (0, routers_1.default)(app);
 app.use(function (error, req, res, next) {
-    return res.status(error.statusCode || 500).json({
-        message: error.message || "Internal Server Error",
-    });
+  return res.status(error.statusCode || 500).json({
+    message: error.message || "Internal Server Error",
+  });
 });
 app.get("/", function (req, res) {
-    res.send("Welcome to Express & TypeScript Server");
+  res.send("Welcome to Express & TypeScript Server");
 });
 app.listen(port, function () {
-    console.log("Server is Fire at http://localhost:".concat(port));
+  console.log("Server is Fire at http://localhost:".concat(port));
 });
